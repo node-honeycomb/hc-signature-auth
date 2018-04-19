@@ -56,5 +56,5 @@ const userAuthMiddleware = SignatureAuth({
   }]
 });
 
-// 同时支持多个signature时使用 combine-auth http://gitlab.alibaba-inc.com/bigdata-node/combine-auth
+// 同时支持多个signature时使用 hc-bee 的combineMiddleware 语法
 ```
