@@ -100,7 +100,10 @@ module.exports = function (app, config) {
     try {
       signatureMeta = util.parseSignatureStructure(req.headers[header]);
     } catch (e) {
-      return nextWrapper(e);
+      return nextWrapper({
+        code: 'SIGNATURE_HEADER_STRUCTURE_ERROR',
+        message: e.message
+      });
     }
 
     // get content first
@@ -149,7 +152,7 @@ function checkSignExpired(date, signExpire, log) {
   if (Math.abs(now - timestamp) > signExpire) {
     let msg = `system timestamp: ${now}, user timestamp: ${timestamp}, user date: ${date}, expire time: ${signExpire}`;
     let err = new Error('Signature expired.  ' + msg);
-    err.code = 'UNAUTHORIZED';
+    err.code = 'SIGNATURE_AUTH_EXPIRED';
     log.error(err);
     return err;
   } else {
