@@ -40,7 +40,7 @@ module.exports = function (app, config) {
 
   let getSecret;
   try {
-    getSecret = accessSecretGetter === 'enum' ? enumAccessSecretGetterGen(config.signatures) : serviceCelintAccessSecretGetter(config.signatureConfig);
+    getSecret = accessSecretGetter === 'enum' ? enumAccessSecretGetterGen(config.signatures, app.config) : serviceCelintAccessSecretGetter(config.signatureConfig, app.config);
   } catch (e) {
     debug('error occured when generate getSecret.');
     throw e;

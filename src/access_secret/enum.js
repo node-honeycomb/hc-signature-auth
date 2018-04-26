@@ -2,7 +2,7 @@
 
 // const debug = require('debug')('hc-signature-auth');
 
-module.exports = function (signatures) {
+module.exports = function (signatures, globalConfig) {
   if (!signatures) {
     throw `[hc-signature-auth]: config.signatures should be supplied in enum mode, got ${signatures}`;
   }
@@ -11,6 +11,11 @@ module.exports = function (signatures) {
   }
   const map = {};
   signatures.forEach(s => {
+    const globalKeySecret = globalConfig && (globalConfig.systemToken || globalConfig.accessKeySecret);
+    if (!s.accessKeySecret && globalKeySecret) {
+      s.accessKeySecret = globalKeySecret;
+      debug('[hc-signature-auth]: enum signatures config accessKeySecret using app.config.systemToken.')
+    }
     if (!s.accessKeyId || !s.accessKeySecret) {
       throw '[hc-signature-auth]: config.signatures[i] should have key accessKeyId and accessKeySecret, got ' + JSON.stringify(s);
     }

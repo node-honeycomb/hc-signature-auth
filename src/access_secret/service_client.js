@@ -13,14 +13,19 @@ function defaultGetAccessSecret(data) {
   return data.accessKeySecret;
 }
 
-module.exports = function (signatureConfig) {
+module.exports = function (signatureConfig, globalConfig) {
   if (!signatureConfig) {
     throw '[hc-signature-auth]: signatureConfig should be supplied in serviceClient mode, got', signatureConfig;
   }
 
-  const serviceClient = signatureConfig.serviceClient;
-  if (!serviceClient) {
-    throw '[hc-signature-auth]: signatureConfig.serviceClient should be supplied in serviceClient mode, got', serviceClient;
+  const globalKeySecret = globalConfig && (globalConfig.systemToken || globalConfig.accessKeySecret);
+  const serviceClientConfig = signatureConfig.serviceClient;
+  if (!serviceClientConfig) {
+    throw '[hc-signature-auth]: signatureConfig.serviceClient should be supplied in serviceClient mode, got', serviceClientConfig;
+  }
+  if (!serviceClientConfig.accessKeySecret) {
+    serviceClientConfig.accessKeySecret = globalKeySecret;
+    debug('[hc-signature-auth]: serviceClient config accessKeySecret using app.config.systemToken.')
   }
   let method = signatureConfig.method;
   if (!method) {
@@ -41,7 +46,7 @@ module.exports = function (signatureConfig) {
     getAccessSecret = defaultGetAccessSecret;
     debug('using default signatureConfig.getAccessSecret', defaultGetAccessSecret);
   }
-  const client = new ServiceClient(serviceClient);
+  const client = new ServiceClient(serviceClientConfig);
 
   return function (customerAccessKeyId) {
     return new Promise(function (resolve, reject) {
