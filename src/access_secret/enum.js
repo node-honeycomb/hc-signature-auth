@@ -1,6 +1,6 @@
 'use strict';
 
-// const debug = require('debug')('hc-signature-auth');
+const debug = require('debug')('hc-signature-auth');
 
 module.exports = function (signatures, globalConfig) {
   if (!signatures) {
