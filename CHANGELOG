@@ -1,1 +1,2 @@
 1.0.4 use app.config.systemToken by default.
+1.0.6 throw new error rather than string & upgrade document.
