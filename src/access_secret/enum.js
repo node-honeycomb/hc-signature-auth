@@ -1,13 +1,14 @@
 'use strict';
 
 const debug = require('debug')('hc-signature-auth');
+const util = require('../util');
 
 module.exports = function (signatures, globalConfig) {
   if (!signatures) {
-    throw `[hc-signature-auth]: config.signatures should be supplied in enum mode, got ${signatures}`;
+    throw util.errorWrapper(`[hc-signature-auth]: config.signatures should be supplied in enum mode, got ${signatures}`);
   }
   if (!signatures.length) {
-    throw '[hc-signature-auth]: config.signatures should be an array, got ' + JSON.stringify(signatures);
+    throw util.errorWrapper('[hc-signature-auth]: config.signatures should be an array, got ' + JSON.stringify(signatures));
   }
   const map = {};
   signatures.forEach(s => {
@@ -17,7 +18,7 @@ module.exports = function (signatures, globalConfig) {
       debug('[hc-signature-auth]: enum signatures config accessKeySecret using app.config.systemToken.')
     }
     if (!s.accessKeyId || !s.accessKeySecret) {
-      throw '[hc-signature-auth]: config.signatures[i] should have key accessKeyId and accessKeySecret, got ' + JSON.stringify(s);
+      throw util.errorWrapper('[hc-signature-auth]: config.signatures[i] should have key accessKeyId and accessKeySecret, got ' + JSON.stringify(s));
     }
     map[s.accessKeyId] = s.accessKeySecret;
   });

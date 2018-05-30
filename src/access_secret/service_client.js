@@ -2,6 +2,7 @@
 
 const ServiceClient = require('hc-service-client').ServiceClient;
 const debug = require('debug')('hc-signature-auth');
+const util = require('../util');
 
 function defaultGenParam(accessKeyId) {
   return {
@@ -15,13 +16,13 @@ function defaultGetAccessSecret(data) {
 
 module.exports = function (signatureConfig, globalConfig) {
   if (!signatureConfig) {
-    throw '[hc-signature-auth]: signatureConfig should be supplied in serviceClient mode, got', signatureConfig;
+    throw util.errorWrapper('[hc-signature-auth]: signatureConfig should be supplied in serviceClient mode, got', signatureConfig);
   }
 
   const globalKeySecret = globalConfig && (globalConfig.systemToken || globalConfig.accessKeySecret);
   const serviceClientConfig = signatureConfig.serviceClient;
   if (!serviceClientConfig) {
-    throw '[hc-signature-auth]: signatureConfig.serviceClient should be supplied in serviceClient mode, got', serviceClientConfig;
+    throw util.errorWrapper('[hc-signature-auth]: signatureConfig.serviceClient should be supplied in serviceClient mode, got', serviceClientConfig);
   }
   if (!serviceClientConfig.accessKeySecret) {
     serviceClientConfig.accessKeySecret = globalKeySecret;
@@ -34,7 +35,7 @@ module.exports = function (signatureConfig, globalConfig) {
   }
   method = method.toLowerCase();
   if (['get', 'post', 'delete', 'put'].indexOf(method) === -1) {
-    throw '[hc-signature-auth]: signatureConfig.method is invalid, got', method;
+    throw util.errorWrapper('[hc-signature-auth]: signatureConfig.method is invalid, got', method);
   }
   let genParam = signatureConfig.genParam;
   if (!genParam) {

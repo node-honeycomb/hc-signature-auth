@@ -25,7 +25,7 @@ module.exports = function (app, config) {
   }
   const verifyApproach = authMap[authType];
   if (!verifyApproach) {
-    throw `[hc-signature-auth], authType: ${authType} is not supported.`;
+    throw util.errorWrapper(`[hc-signature-auth], authType: ${authType} is not supported.`);
   }
   let header = config.header;
   if (!header) {
@@ -159,3 +159,4 @@ function checkSignExpired(date, signExpire, log) {
     return false;
   }
 }
+
