@@ -117,8 +117,8 @@ hc-signature-auth 支持三种签名:
       accessKeySecret: ''             // optional, 与accessKeyId对应的accessKeySecret，可省略，默认使用 config.systemToken / config.accessKeySecret
     }
   ],
-  signatureConfig: {          // optional, accessSecretGetter=service-client时必填，填写远程调用的信息。默认使用系统间调用，更多配置可见: https://github.com/node-honeycomb/hc-service-client
-    serviceClient: {          // required, 配置service-client调用远程时的签名信息
+  signatureConfig: {          // optional, accessSecretGetter=service-client时必填，填写远程调用的信息。
+    serviceClient: {          // required, 配置service-client调用远程时的签名信息。默认使用系统间调用，更多配置可见: https://github.com/node-honeycomb/hc-service-client
       accessKeyId: 'system-token',    // required
       accessKeySecret: '',            // optional, 同signatures的accessKeySecret
       endpoint: ''                    // required
