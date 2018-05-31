@@ -136,3 +136,25 @@ hc-signature-auth 支持三种签名:
 }
 ```
 
+## 本地开发环境不想要前校验签名？
+
+使用debug = true的配置
+
+```js
+// .honeycomb.json
+
+{
+  "cmomon": {
+    "debug": true
+  }
+}
+```
+
+## 有bug找问题？
+
+使用 DEBUG=hc-* ，打印hc-signature-auth和hc-service-client的log帮助排查
+
+```sh
+DEBUG=hc-* honeycomb start
+```
+

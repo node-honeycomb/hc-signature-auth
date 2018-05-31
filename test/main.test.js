@@ -20,17 +20,18 @@ describe('开始测试', function () {
         getLog: () => {
           return {
             debug: console.log.bind(console),
+            warn: console.log.bind(console),
             error: console.log.bind(console)
           };
         }
       }, {
-        authType: 'systemCall',
-        header: 'signature',
-        signatures: consts.singleSignature
-      }), function () {
-        httpPort = httpInstance.address().port;
-        done();
-      });
+          authType: 'systemCall',
+          header: 'signature',
+          signatures: consts.singleSignature
+        }), function () {
+          httpPort = httpInstance.address().port;
+          done();
+        });
     });
 
     it('GET', function (done) {
@@ -54,11 +55,11 @@ describe('开始测试', function () {
       }).post('/urllib?a=b&c=d', {
         foo: 'bar'
       }, {
-        dataType: false
-      }, function (err, data) {
-        assert(err.toString() === '/urllib?a=b&c=d');
-        done();
-      });
+          dataType: false
+        }, function (err, data) {
+          assert(err.toString() === '/urllib?a=b&c=d');
+          done();
+        });
     });
 
     it('POST upload file', function (done) {
@@ -109,8 +110,8 @@ describe('开始测试', function () {
           date: new Date().toUTCString()
         }
       }, function (err, data) {
-        debug('err, data', err, data);
-        // assert(err.toString() === '/urllib?a=b&c=d');
+        const result = JSON.parse(data.toString());
+        assert(result.code === 'SIGNATURE_HEADER_STRUCTURE_ERROR');
         done();
       });
     });
@@ -129,17 +130,18 @@ describe('开始测试', function () {
         getLog: () => {
           return {
             debug: console.log.bind(console),
+            warn: console.log.bind(console),
             error: console.log.bind(console)
           };
         }
       }, {
-        authType: 'userAuth',
-        header: 'authorization',
-        signatures: consts.multipleSignatures
-      }), function () {
-        httpPort = httpInstance.address().port;
-        done();
-      });
+          authType: 'userAuth',
+          header: 'authorization',
+          signatures: consts.multipleSignatures
+        }), function () {
+          httpPort = httpInstance.address().port;
+          done();
+        });
     });
 
     it('DELETE', function (done) {
@@ -220,6 +222,7 @@ describe('开始测试', function () {
           getLog: () => {
             return {
               debug: console.log.bind(console),
+              warn: console.log.bind(console),
               error: console.log.bind(console)
             };
           }
@@ -306,6 +309,7 @@ describe('开始测试', function () {
           getLog: () => {
             return {
               debug: console.log.bind(console),
+              warn: console.log.bind(console),
               error: console.log.bind(console)
             };
           }
@@ -396,24 +400,25 @@ describe('开始测试', function () {
           getLog: () => {
             return {
               debug: console.log.bind(console),
+              warn: console.log.bind(console),
               error: console.log.bind(console)
             };
           }
         }, {
-          authType: 'jwt',
-          signatures: consts.singleSignature,
-        }), function () {
-        httpPort = httpInstance.address().port;
-        done();
-      });
+            authType: 'jwt',
+            signatures: consts.singleSignature,
+          }), function () {
+            httpPort = httpInstance.address().port;
+            done();
+          });
     });
 
     it('GET success', function (done) {
       const token = jwt.sign({
         hello: 'world'
       }, consts.singleSignature[0].accessKeySecret, {
-        algorithm: 'HS256'
-      });
+          algorithm: 'HS256'
+        });
       urllib.request('http://localhost:' + httpPort + '/jwt', {
         method: 'GET',
         dataType: false,
@@ -484,8 +489,8 @@ describe('开始测试', function () {
       const token = jwt.sign({
         hello: 'world'
       }, consts.singleSignature[0].accessKeySecret, {
-        algorithm: 'HS256'
-      });
+          algorithm: 'HS256'
+        });
       urllib.request('http://localhost:' + httpPort + '/jwt', {
         method: 'DELETE',
         dataType: false,
@@ -498,6 +503,69 @@ describe('开始测试', function () {
       }, function (err, data) {
         const d = JSON.parse(data.toString());
         assert(d.hello === 'world');
+        done();
+      });
+    });
+
+    after(() => {
+      httpInstance.close();
+    });
+  });
+
+  describe('debug mode test', function (done) {
+    let httpInstance = null;
+    let httpPort = null;
+
+    before((done) => {
+      httpInstance = httpServer.start(
+        signatureAuth({
+          config: {
+            debug: true
+          },
+          getLog: () => {
+            return {
+              debug: console.log.bind(console),
+              warn: console.log.bind(console),
+              error: console.log.bind(console)
+            };
+          }
+        }, {
+            authType: 'jwt',
+            signatures: consts.singleSignature,
+          }), function () {
+            httpPort = httpInstance.address().port;
+            done();
+          });
+    });
+
+    it('GET success', function (done) {
+      urllib.request('http://localhost:' + httpPort + '/urllib', {
+        method: 'GET',
+        dataType: false,
+        data: {
+          foo: 'bar'
+        },
+        headers: {
+          authorization: `jwt ${consts.singleSignature[0].accessKeyId}:wrongToken`,
+        }
+      }, function (err, data) {
+        assert(data.toString() === '/urllib?foo=bar');
+        done();
+      });
+    });
+
+    it('GET error', function (done) {
+      urllib.request('http://localhost:' + httpPort + '/jwt', {
+        method: 'GET',
+        dataType: false,
+        data: {
+          foo: 'bar'
+        },
+        headers: {
+          // authorization: `jwt ${consts.singleSignature[0].accessKeyId}:wrongToken`,
+        }
+      }, function (err, data) {
+        assert(data.toString() === '{"error":"SIGNATURE_HEADER_NOT_FOUND","message":"signature header `authorization` not found"}');
         done();
       });
     });

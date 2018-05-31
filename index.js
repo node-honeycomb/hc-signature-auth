@@ -75,6 +75,7 @@ module.exports = function (app, config) {
     // ignore path
     if (ignoreHandler(req.path)) {
       debug('ignored', req.path);
+      log.warn('[hc-signature-auth]: ignored', req.path);
       return nextWrapper();
     }
 
@@ -84,6 +85,13 @@ module.exports = function (app, config) {
         error: 'SIGNATURE_HEADER_NOT_FOUND',
         message: 'signature header `' + header + '` not found'
       });
+    }
+
+    // skip auth in debug mode
+    if (config.debug || app.config.debug) {
+      debug('skip in debug mode', req.path);
+      log.warn('[hc-signature-auth]: skip in debug mode', req.path);
+      return nextWrapper();
     }
 
     // check expired if there is date header.
