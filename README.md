@@ -73,6 +73,15 @@ hc-signature-auth 支持三种签名:
         }
       }
     },
+    userAuth1: {
+      router: '/api/userAuth1/*',
+      module: 'hc-signature-auth',
+      config: {
+        authType: 'userAuth',
+        accessSecretGetter: 'service-client'     // 从接口动态拉取密钥
+        // signatureConfig 不配置时，默认使用 app.config.system.endpoint、app.config.system、app.systemToken等全局配置
+      }
+    },
     jwt: {
       router: '/api/jwt/*',
       module: 'hc-signature-auth',
@@ -118,12 +127,12 @@ hc-signature-auth 支持三种签名:
     }
   ],
   signatureConfig: {          // optional, accessSecretGetter=service-client时必填，填写远程调用的信息。
-    serviceClient: {          // required, 配置service-client调用远程时的签名信息。默认使用系统间调用，更多配置可见: https://github.com/node-honeycomb/hc-service-client
-      accessKeyId: 'system-token',    // required
+    serviceClient: {          // optional, 配置service-client调用远程时的签名信息。默认使用系统间调用，更多配置可见: https://github.com/node-honeycomb/hc-service-client
+      accessKeyId: 'hc-service-client',    // optional, 默认 hc-service-client
       accessKeySecret: '',            // optional, 同signatures的accessKeySecret
-      endpoint: ''                    // required
+      endpoint: ''                    // optional, 不填时使用 (app.config.system.endpoint || app.config.system) + '/system/api/auth'
     },
-    method: 'GET',            // optional, default GET
+    method: 'GET',                    // optional, default GET
     genParam: function (accessKeyId) {    // optional, 构造请求参数，不传时就是前面这个函数
       return {
         accessKeyId

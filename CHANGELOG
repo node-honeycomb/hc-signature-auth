@@ -1,2 +1,3 @@
 1.0.4 use app.config.systemToken by default.
 1.0.6 throw new error rather than string & upgrade document.
+1.0.7 support debug mode to skip verify & use default global config in 'service-client' mode.
