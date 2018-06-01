@@ -1,6 +1,6 @@
 {
   "name": "hc-signature-auth",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "Auth middleware for honeycomb app.",
   "main": "index.js",
   "scripts": {
@@ -16,9 +16,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "hc-service-client": "^1.0.0",
     "debug": "^3.1.0",
+    "hc-service-client": "^1.0.0",
     "jsonwebtoken": "^8.2.1",
+    "lodash": "^4.17.10",
     "path-to-regexp": "^1.7.0",
     "urllib": "^2.27.0"
   },

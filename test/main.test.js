@@ -574,4 +574,61 @@ describe('开始测试', function () {
       httpInstance.close();
     });
   });
+
+  describe('use default system endpoint', function (done) {
+    let httpInstance = null;
+    let httpPort = null;
+
+    before((done) => {
+      httpInstance = httpServer.start(
+        signatureAuth({
+          config: {
+            systemToken: consts.system.accessKeySecret,
+            services: {
+              system: {
+                endpoint: consts.system.endpoint
+              }
+            }
+          },
+          getLog: () => {
+            return {
+              debug: console.log.bind(console),
+              warn: console.log.bind(console),
+              error: console.log.bind(console)
+            };
+          }
+        }, {
+          authType: 'userAuth',
+          accessSecretGetter: 'service-client',
+          // signatureConfig: {
+          //   serviceClient: {
+          //     accessKeyId: 'system-token',
+          //     // accessKeySecret: consts.system.accessKeySecret,
+          //     // endpoint: consts.system.endpoint + '/system/api/authinfo'
+          //   }
+          // }
+        }), function () {
+        httpPort = httpInstance.address().port;
+        done();
+      });
+    });
+
+    it('should success', function (done) {
+      new ServiceClient({
+        endpoint: 'http://localhost:' + httpPort,
+        accessKeyId: consts.system.userInfo.accessKeyId,
+        accessKeySecret: consts.system.userInfo.accessKeySecret,
+        signatureApproach: 'userAuth'
+      }).post('/urllib', '', {
+        dataType: false
+      }, function (err, data) {
+        assert(err.toString() === '/urllib');
+        done();
+      });
+    });
+
+    after(() => {
+      httpInstance.close();
+    });
+  });
 });
