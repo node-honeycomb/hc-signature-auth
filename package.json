@@ -1,6 +1,6 @@
 {
   "name": "hc-signature-auth",
-  "version": "1.0.8",
+  "version": "1.0.8-alpha",
   "description": "Auth middleware for honeycomb app.",
   "main": "index.js",
   "scripts": {
