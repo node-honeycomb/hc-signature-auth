@@ -7,6 +7,11 @@ const stream = require('stream');
 module.exports = function (req) {
   return new Promise((resolve, reject) => {
     let hash = crypto.createHash('md5');
+
+    if (!req.readable) {
+      return reject('[hc-signature-auth] request stream has been end, plz put this middleware to first of all');
+    }
+
     const transform = new stream.Transform({
       transform: function (data, encoding, callback) {
         hash.update(data, encoding);
