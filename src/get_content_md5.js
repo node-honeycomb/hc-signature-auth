@@ -3,24 +3,90 @@
 const crypto = require('crypto');
 const debug = require('debug')('hc-signature-auth');
 const stream = require('stream');
+const fs = require('fs');
+const os = require('os');
+const {nanoid} = require('nanoid');
+const path = require('path');
 
 module.exports = function (req) {
   return new Promise((resolve, reject) => {
-    let hash = crypto.createHash('md5');
-    const transform = new stream.Transform({
-      transform: function (data, encoding, callback) {
-        hash.update(data, encoding);
-        this.push(data);
-        callback(null);
-        req.resume();
-      }
+    const hash = crypto.createHash('md5');
+    const duplexStream = new stream.Duplex({
+      write(chunk, encoding, callback) {
+        hash.update(chunk, encoding);
+        if (this.memoryBuffer.length + chunk.length > this.MAX_MEMOREY_CACHE_SIZE) {
+          if (!this.fileHander) {
+            this.fileHander = path.join(os.tmpdir(), nanoid());
+            this.fileWriteHander = fs.createWriteStream(this.fileHander);
+            this.fileWriteHander.on('error', reject);
+          }
+          this.fileWriteHander.write(chunk, encoding, callback);
+        } else {
+          this.memoryBuffer = Buffer.concat([this.memoryBuffer, chunk]);
+          callback();
+        }
+      },
+      final(callback) {
+        if (this.fileWriteHander) {
+          debug('file stream catched to disk:', this.fileHander);
+          this.fileWriteHander.end(callback);
+        } else {
+          callback();
+        }
+      },
+      read(n) {
+        const chunk = this.memoryBuffer.slice(0, n);
+        this.memoryBuffer = this.memoryBuffer.slice(chunk.length, this.memoryBuffer.length);
+        if (chunk.length !== 0) {
+          this.push(chunk);
+        } else if (this.fileHander) {
+          if (!this.fileReadHander) {
+            this.fileReadHander = fs.createReadStream(this.fileHander);
+            this.fileReadHander.on('error', reject);
+          }
+          const r = () => {
+            const fChunk = this.fileReadHander.read(n);
+            if (fChunk === null) {
+              if (this.fileReadHander._readableState.ended === true) {
+                this.push(null);
+              } else {
+                setImmediate(r, 0);
+              }
+            } else {
+              this.push(fChunk);
+            }
+          };
+          r();
+        } else {
+          this.push(null);
+          // this.push(null); // push EOF
+        }
+      },
     });
-    req.pipe(transform);
-    req.on('end', function () {
+    // construct
+    duplexStream.MAX_MEMOREY_CACHE_SIZE = 128 * 1024;
+    duplexStream.fileHander = null;
+    duplexStream.fileReadHander = null;
+    duplexStream.fileWriteHander = null;
+    duplexStream.memoryBuffer = Buffer.alloc(0);
+    req.pipe(duplexStream);
+    duplexStream.on('finish', () => {
       req._contentMd5 = hash.digest('base64');
       debug('contentMd5--------------', req._contentMd5);
-      Object.assign(req, transform);
-      resolve(req._contentMd5);
+      setImmediate(() => {
+        Object.assign(req, duplexStream);
+        resolve(req._contentMd5);
+      });
+    });
+    duplexStream.on('end', () => {
+      if (duplexStream.fileHander) {
+        // eslint-disable-next-line node/prefer-promises/fs
+        fs.unlink(duplexStream.fileHander, (err) => {
+          if (err) {
+            debug(err);
+          }
+        });
+      }
     });
   });
 };
