@@ -3,82 +3,91 @@
 const crypto = require('crypto');
 const debug = require('debug')('hc-signature-auth');
 const stream = require('stream');
+const fs = require('fs');
+const os = require('os');
 const uuid = require('uuid');
 const path = require('path');
-const os = require('os');
-const fs = require('fs');
 
-const MAX_MEMORY_STREAM_LENGTH = 2048;
 module.exports = function (req) {
   return new Promise((resolve, reject) => {
     let hash = crypto.createHash('md5');
-    const readStream = new stream.Readable({
-      read() {},
-    });
-    let fileWriteStream;
-    let fileReadStream;
-    let fileTmpPath = path.join(os.tmpdir(), uuid.v4());
-    let length = 0;
-    function endListener() {
-      if (!fileReadStream) {
-        readStream.push(null); // push EOF
-      }
-      req._contentMd5 = hash.digest('base64');
-      debug('contentMd5--------------', req._contentMd5);
-      Object.assign(req, fileReadStream || readStream);
-      resolve(req._contentMd5);
-    }
-    let memoryPiping = false; // substitute for readable.readableEnded, Node.js v12.9.0
-    req.on('end', endListener);
-    req.on('data', (chunk) => {
-      hash.update(chunk);
-      length += chunk.length;
-      if (length > MAX_MEMORY_STREAM_LENGTH) {
-        if (!fileWriteStream) {
-          // pause req stream
-          req.pause();
-          // remoeve req end listener
-          req.removeListener('end', endListener);
-          req.on('end', () => {
-            fileWriteStream.end();
-          });
-          readStream.push(null); // push EOF
-          // add readStream listener
-          readStream.on('end', () => {
-            memoryPiping = false;
-            fileWriteStream.write(chunk);
-            req.resume(); // resum req stream
-          });
-          readStream.on('error', (err) => {
-            readStream.destroy();
-            reject(err);
-          });
-          // create file stream
-          fileWriteStream = fs.createWriteStream(fileTmpPath, {highWaterMark: 10});
-          fileWriteStream.on('error', (err) => {
-            fileWriteStream.destroy();
-            reject(err);
-          });
-          fileWriteStream.on('drain', () => {
-            if (!memoryPiping) {
-              req.resume();
-            }
-          });
-          fileWriteStream.on('finish', () => {
-            fileReadStream = fs.createReadStream(fileTmpPath);
-            endListener();
-          });
-          // pipe
-          readStream.pipe(fileWriteStream, {end: false});
-          memoryPiping = true;
+    const duplexStream = new stream.Duplex({
+      construct(callback) {
+        this.MAX_MEMOREY_CACHE_SIZE = 128 * 1024;
+        this.fileHander = null;
+        this.fileReadHander = null;
+        this.fileWriteHander = null;
+        this.memoryBuffer = Buffer.alloc(0);
+        callback();
+      },
+      write(chunk, encoding, callback) {
+        hash.update(chunk, encoding);
+        if (this.memoryBuffer.length + chunk.length > this.MAX_MEMOREY_CACHE_SIZE) {
+          if (!this.fileHander) {
+            this.fileHander = path.join(os.tmpdir(), uuid.v4());
+            this.fileWriteHander = fs.createWriteStream(this.fileHander);
+            this.fileWriteHander.on('error', reject);
+          }
+          this.fileWriteHander.write(chunk, encoding, callback);
         } else {
-          const ok = fileWriteStream.write(chunk);
-          if (!ok) {
-            req.pause();
+          this.memoryBuffer = Buffer.concat([this.memoryBuffer, chunk]);
+          callback();
+        }
+      },
+      final(callback) {
+        if (this.fileWriteHander) {
+          this.fileWriteHander.end(callback);
+        } else {
+          callback();
+        }
+      },
+      read(n) {
+        const chunk = this.memoryBuffer.slice(0, n);
+        this.memoryBuffer = this.memoryBuffer.slice(chunk.length, this.memoryBuffer.length);
+        if (chunk.length !== 0) {
+          this.push(chunk);
+        } else {
+          if (this.fileHander) {
+            if (!this.fileReadHander) {
+              this.fileReadHander = fs.createReadStream(this.fileHander);
+              this.fileReadHander.on('error', reject);
+            }
+            const r = () => {
+              const fChunk = this.fileReadHander.read(n);
+              if (fChunk === null) {
+                if (this.fileReadHander._readableState.ended === true) {
+                  this.push(null);
+                } else {
+                  setImmediate(r, 0);
+                }
+              } else {
+                this.push(fChunk);
+              }
+            };
+            r();
+          } else {
+            this.push(null);
+            // this.push(null); // push EOF
           }
         }
-      } else {
-        readStream.push(chunk);
+      }
+    });
+    req.pipe(duplexStream);
+    duplexStream.on('finish', () => {
+      req._contentMd5 = hash.digest('base64');
+      debug('contentMd5--------------', req._contentMd5);
+      setImmediate(() => {
+        Object.assign(req, duplexStream);
+        resolve(req._contentMd5);
+      });
+    });
+    duplexStream.on('end', () => {
+      if (duplexStream.fileHander) {
+        fs.unlink(duplexStream.fileHander, (err) => {
+          if (err) {
+            debug(err);
+          }
+        });
       }
     });
   });
