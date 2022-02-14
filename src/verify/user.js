@@ -19,7 +19,7 @@ function userVerify(req, signatureMeta, accessSecretMeta, log) {
   let userSign = signatureMeta.signature;
   let accessKeySecret = accessSecretMeta.accessKeySecret ? accessSecretMeta.accessKeySecret : accessSecretMeta;
   let method = req.method;
-  let url = req.originalUrl || req.url;
+  let url = decodeURIComponent(req.originalUrl || req.url);
   let accept = headers.accept;
   let contentType = headers['content-type'];
   let stringToSign;
