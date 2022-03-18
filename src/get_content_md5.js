@@ -10,16 +10,8 @@ const path = require('path');
 
 module.exports = function (req) {
   return new Promise((resolve, reject) => {
-    let hash = crypto.createHash('md5');
+    const hash = crypto.createHash('md5');
     const duplexStream = new stream.Duplex({
-      construct(callback) {
-        this.MAX_MEMOREY_CACHE_SIZE = 128 * 1024;
-        this.fileHander = null;
-        this.fileReadHander = null;
-        this.fileWriteHander = null;
-        this.memoryBuffer = Buffer.alloc(0);
-        callback();
-      },
       write(chunk, encoding, callback) {
         hash.update(chunk, encoding);
         if (this.memoryBuffer.length + chunk.length > this.MAX_MEMOREY_CACHE_SIZE) {
@@ -36,6 +28,7 @@ module.exports = function (req) {
       },
       final(callback) {
         if (this.fileWriteHander) {
+          debug('file stream catched to disk:', this.fileHander);
           this.fileWriteHander.end(callback);
         } else {
           callback();
@@ -46,32 +39,36 @@ module.exports = function (req) {
         this.memoryBuffer = this.memoryBuffer.slice(chunk.length, this.memoryBuffer.length);
         if (chunk.length !== 0) {
           this.push(chunk);
-        } else {
-          if (this.fileHander) {
-            if (!this.fileReadHander) {
-              this.fileReadHander = fs.createReadStream(this.fileHander);
-              this.fileReadHander.on('error', reject);
-            }
-            const r = () => {
-              const fChunk = this.fileReadHander.read(n);
-              if (fChunk === null) {
-                if (this.fileReadHander._readableState.ended === true) {
-                  this.push(null);
-                } else {
-                  setImmediate(r, 0);
-                }
-              } else {
-                this.push(fChunk);
-              }
-            };
-            r();
-          } else {
-            this.push(null);
-            // this.push(null); // push EOF
+        } else if (this.fileHander) {
+          if (!this.fileReadHander) {
+            this.fileReadHander = fs.createReadStream(this.fileHander);
+            this.fileReadHander.on('error', reject);
           }
+          const r = () => {
+            const fChunk = this.fileReadHander.read(n);
+            if (fChunk === null) {
+              if (this.fileReadHander._readableState.ended === true) {
+                this.push(null);
+              } else {
+                setImmediate(r, 0);
+              }
+            } else {
+              this.push(fChunk);
+            }
+          };
+          r();
+        } else {
+          this.push(null);
+          // this.push(null); // push EOF
         }
-      }
+      },
     });
+    // construct
+    duplexStream.MAX_MEMOREY_CACHE_SIZE = 128 * 1024;
+    duplexStream.fileHander = null;
+    duplexStream.fileReadHander = null;
+    duplexStream.fileWriteHander = null;
+    duplexStream.memoryBuffer = Buffer.alloc(0);
     req.pipe(duplexStream);
     duplexStream.on('finish', () => {
       req._contentMd5 = hash.digest('base64');
@@ -83,6 +80,7 @@ module.exports = function (req) {
     });
     duplexStream.on('end', () => {
       if (duplexStream.fileHander) {
+        // eslint-disable-next-line node/prefer-promises/fs
         fs.unlink(duplexStream.fileHander, (err) => {
           if (err) {
             debug(err);
