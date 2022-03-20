@@ -31,7 +31,7 @@ describe('开始测试', () => {
     });
     assert.equal(getMd5(data) + data.toString(), res.data.toString(), '请求异常');
   });
-  it('一个大的请求流', async () => {
+  it.only('一个大的请求流', async () => {
     // const data = Buffer.alloc(3000);
     const data = fs.readFileSync(path.join(__dirname, '../package-lock.json'), 'utf-8');
     const res = await urllib.request(URL, {

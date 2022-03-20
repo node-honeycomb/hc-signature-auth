@@ -20,9 +20,9 @@
     "hc-service-client": "^1.0.0",
     "jsonwebtoken": "^8.2.1",
     "lodash": "^4.17.10",
+    "nanoid": "^3.3.1",
     "path-to-regexp": "^1.7.0",
-    "urllib": "^2.27.0",
-    "uuid": "^8.3.2",
+    "urllib": "^2.27.0"
   },
   "devDependencies": {
     "babel-eslint": "^8.2.1",
