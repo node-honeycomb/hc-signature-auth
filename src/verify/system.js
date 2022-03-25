@@ -14,7 +14,7 @@ systemVerify.defaultHeader = 'signature';
  * @return {Promise} isValid
  */
 function systemVerify(req, signatureMeta, accessSecretMeta, log) {
-  let url = decodeURIComponent(req.originalUrl || req.url);
+  let url = req.originalUrl || req.url;
   let headers = req.headers;
   let date = headers.date;
   let method = req.method;
